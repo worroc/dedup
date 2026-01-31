@@ -18,8 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dedup = "main:cli"
-tidy = "tidi:cli"
+dedup = "dedup.main:cli"
 
 [build-system]
 requires = ["hatchling"]
