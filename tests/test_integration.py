@@ -878,3 +878,104 @@ class TestClearCache:
         assert not ctx.appraiser_rules_filename.exists()
         assert not ctx.appraiser_ignore_filename.exists()
         assert not ctx.appraiser_remove_filename.exists()
+
+
+class TestTidyCommand:
+    def test_tidy_organizes_by_date(self, temp_tree, reset_ctx):
+        """Test tidy organizes files into date-based directories."""
+        import os
+
+        # create files with specific modification times
+        file1 = temp_tree / "photo1.jpg"
+        file2 = temp_tree / "photo2.jpg"
+        file3 = temp_tree / "doc.txt"
+
+        file1.write_bytes(b"image1")
+        file2.write_bytes(b"image2")
+        file3.write_bytes(b"document")
+
+        # set different modification times
+        # file1 and file2: 2024-01-15, file3: 2024-02-20
+        import time
+
+        t1 = time.mktime(time.strptime("2024-01-15", "%Y-%m-%d"))
+        t2 = time.mktime(time.strptime("2024-02-20", "%Y-%m-%d"))
+
+        os.utime(file1, (t1, t1))
+        os.utime(file2, (t1, t1))
+        os.utime(file3, (t2, t2))
+
+        # run tidy via cli (without --dry-run, so files are moved)
+        from dedup.main import cli
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["tidy", str(temp_tree)])
+
+        assert result.exit_code == 0
+
+        # verify files moved to date directories
+        assert (temp_tree / "2024-01-15" / "photo1.jpg").exists()
+        assert (temp_tree / "2024-01-15" / "photo2.jpg").exists()
+        assert (temp_tree / "2024-02-20" / "doc.txt").exists()
+
+        # original files should no longer exist in root
+        assert not file1.exists()
+        assert not file2.exists()
+        assert not file3.exists()
+
+    def test_tidy_dry_run(self, temp_tree, reset_ctx):
+        """Test tidy dry-run mode doesn't move files."""
+        import os
+        import time
+
+        reset_ctx.dry_run = True
+
+        file1 = temp_tree / "photo.jpg"
+        file1.write_bytes(b"image")
+
+        t1 = time.mktime(time.strptime("2024-03-10", "%Y-%m-%d"))
+        os.utime(file1, (t1, t1))
+
+        from dedup.main import cli
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--dry-run", "tidy", str(temp_tree)])
+
+        assert result.exit_code == 0
+
+        # file should still be in original location
+        assert file1.exists()
+        # date directory should not be created
+        assert not (temp_tree / "2024-03-10").exists()
+
+    def test_tidy_skips_directories(self, temp_tree, reset_ctx):
+        """Test tidy only moves files, not directories."""
+        import os
+        import time
+
+        subdir = temp_tree / "subdir"
+        subdir.mkdir()
+        (subdir / "nested.txt").write_bytes(b"nested")
+
+        file1 = temp_tree / "file.txt"
+        file1.write_bytes(b"content")
+
+        t1 = time.mktime(time.strptime("2024-04-01", "%Y-%m-%d"))
+        os.utime(file1, (t1, t1))
+
+        from dedup.main import cli
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["tidy", str(temp_tree)])
+
+        assert result.exit_code == 0
+
+        # file moved
+        assert (temp_tree / "2024-04-01" / "file.txt").exists()
+
+        # subdir still in place (not moved)
+        assert subdir.exists()
+        assert (subdir / "nested.txt").exists()

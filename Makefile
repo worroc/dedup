@@ -8,12 +8,12 @@ setup:
 	uv run pre-commit install
 
 test:
-	uv run pytest tests/ -v
+	uv run pytest tests/ -v --cov=dedup --cov-report=term-missing
 
 lint:
 	uv run ruff check . --fix
 	uv run ruff format .
-	uv run mypy dedup tidi --ignore-missing-imports
+	uv run mypy dedup --ignore-missing-imports
 
 # Run all checks (same as pre-commit)
 check:

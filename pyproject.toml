@@ -29,6 +29,7 @@ dev-dependencies = [
     "bump2version",
     "ruff",
     "pytest",
+    "pytest-cov",
     "pre-commit",
     "mypy",
 ]
