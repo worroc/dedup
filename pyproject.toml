@@ -1,0 +1,35 @@
+[project]
+name = "dedup"
+version = "0.0.2"
+description = "deduplicate identical files"
+readme = "README.rst"
+license = "BSD-3-Clause"
+authors = [
+    { name = "Ilya Levin", email = "worroc@zoho.com" }
+]
+maintainers = [
+    { name = "worroc", email = "worroc@zoho.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "click",
+    "clickclick",
+    "send2trash",
+]
+
+[project.scripts]
+dedup = "main:cli"
+tidy = "tidi:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "bump2version",
+    "ruff",
+    "pytest",
+    "pre-commit",
+    "mypy",
+]
